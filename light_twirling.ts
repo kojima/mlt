@@ -225,6 +225,8 @@ namespace light_twirling {
 
     let remoteControlled = false
     radio.onReceivedValue(function (name, value) {
+        serial.writeLine("onReceivedValue")
+        serial.writeValue(name, value)
         if (name == "mode") {
             if (value === 1) mode = 'AlwaysON'
             else if (value === 2) mode = 'Blink'
@@ -234,7 +236,7 @@ namespace light_twirling {
             currentPalette = value
             indicatePalette()
         } else if (name == "led") {
-            serial.writeValue(name, value)
+            remoteControlled = true
             currentPalette = Math.floor(value / 10.0) | 0
             currentPaletteColor = value - currentPalette * 10
         } else if (mode == "Blink" && name == "blink") {
