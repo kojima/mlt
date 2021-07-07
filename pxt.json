@@ -1,5 +1,5 @@
 {
-    "name": "twirling library",
+    "name": "micro:bit トワリング用ライブラリ",
     "version": "1.0.0",
     "description": "",
     "dependencies": {
