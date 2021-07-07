@@ -189,9 +189,30 @@ namespace light_twirling {
     })
 
     function indicatePalette() {
-        basic.showNumber(currentPalette + 1)
-        basic.pause(2000)
-        basic.clearScreen()
+        if (mode === 'switchingPalette') return
+        mode = 'switchingPalette'
+        const colors = [
+            0xFF0000,
+            0xFF6A00,
+            0xFFE800,
+            0x006400,
+            0x55FF00,
+            0x101989,
+            0x0000FF,
+            0x2255FF,
+            0x7700FF,
+            0xEE33EE,
+            0xFFFFFF,            
+        ]
+        if (currentPalette >= 0 && currentPalette < colors.length) {
+            for (let i = 0; i < 3; i++) {
+                _turnOffLED()
+                basic.pause(250)
+                _litLED(colors[currentPalette])
+                basic.pause(250)
+            }
+            _turnOffLED()
+        }
         mode = "AlwaysON"
     }
 
