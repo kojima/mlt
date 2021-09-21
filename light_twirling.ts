@@ -234,7 +234,7 @@ namespace light_twirling {
         } else if (name == "palette") {
             remoteControlled = true
             currentPalette = value
-            indicatePalette()
+            //indicatePalette()
         } else if (name == "led") {
             remoteControlled = true
             currentPalette = Math.floor(value / 10.0) | 0
