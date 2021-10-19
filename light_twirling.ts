@@ -162,6 +162,8 @@ let mltStrip2: neopixel.Strip = neopixel.create(DigitalPin.P1, 3, NeoPixelMode.R
 let currentPalette: Palette = Palette.PALETTE1
 let currentPaletteColor: PaletteColor = null
 
+let receivedTimestamps: number[] = [];
+
 /**
  * ライトトワリング
  */
@@ -224,9 +226,18 @@ namespace light_twirling {
     })
 
     let remoteControlled = false
-    radio.onReceivedValue(function (name, value) {
+    radio.onReceivedValue(function (name, valueWithTimestamp: number) {
         serial.writeLine("onReceivedValue")
+        serial.writeValue(name, valueWithTimestamp)
+        const timestamp: number = Math.floor(valueWithTimestamp / 10000)
+        const value = valueWithTimestamp - timestamp * 10000
+
+        if (receivedTimestamps.indexOf(timestamp) >= 0) return;
+
         serial.writeValue(name, value)
+        receivedTimestamps.push(timestamp);
+        if (receivedTimestamps.length > 1000) receivedTimestamps.shift()
+
         if (name == "mode") {
             if (value === 1) mode = 'AlwaysON'
             else if (value === 2) mode = 'Blink'
