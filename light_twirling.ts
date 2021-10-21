@@ -236,7 +236,7 @@ namespace light_twirling {
 
         serial.writeValue(name, value)
         receivedTimestamps.push(timestamp);
-        if (receivedTimestamps.length > 1000) receivedTimestamps.shift()
+        if (receivedTimestamps.length > 100) receivedTimestamps.shift()
 
         if (name == "mode") {
             if (value === 1) mode = 'AlwaysON'
