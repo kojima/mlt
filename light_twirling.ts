@@ -227,16 +227,21 @@ namespace light_twirling {
 
     let remoteControlled = false
     radio.onReceivedValue(function (name, valueWithTimestamp: number) {
-        serial.writeLine("onReceivedValue")
-        serial.writeValue(name, valueWithTimestamp)
+        //serial.writeLine("onReceivedValue")
+        //serial.writeValue(name, valueWithTimestamp)
         const timestamp: number = Math.floor(valueWithTimestamp / 10000)
         const value = valueWithTimestamp - timestamp * 10000
 
         if (receivedTimestamps.indexOf(timestamp) >= 0) return;
 
-        serial.writeValue(name, value)
-        receivedTimestamps.push(timestamp);
+        //serial.writeValue(name, value)
+        receivedTimestamps.push(timestamp)
         if (receivedTimestamps.length > 100) receivedTimestamps.shift()
+
+        // *********************************************
+        // repeat message for other twirling toarches
+        // *********************************************
+        radio.sendValue(name, valueWithTimestamp)
 
         if (name == "mode") {
             if (value === 1) mode = 'AlwaysON'
