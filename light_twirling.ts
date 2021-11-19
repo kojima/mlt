@@ -255,6 +255,7 @@ namespace light_twirling {
             remoteControlled = true
             currentPalette = Math.floor(value / 10.0) | 0
             currentPaletteColor = value - currentPalette * 10
+            if (mode === 'AlwaysON') _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
         } else if (mode == "Blink" && name == "blink") {
             if (value == 1) {
                 _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
