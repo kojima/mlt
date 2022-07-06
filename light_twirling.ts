@@ -156,8 +156,7 @@ const PaletteColorColors: {[key: number]: Array<number>} = {
     ]
 };
 
-let mltStrip1: neopixel.Strip = neopixel.create(DigitalPin.P0, 3, NeoPixelMode.RGB)
-let mltStrip2: neopixel.Strip = neopixel.create(DigitalPin.P1, 3, NeoPixelMode.RGB)
+let mltStrip1: neopixel.Strip = neopixel.create(DigitalPin.P0, 6, NeoPixelMode.RGB)
 
 let currentPalette: Palette = Palette.PALETTE1
 let currentPaletteColor: PaletteColor = null
@@ -290,19 +289,15 @@ namespace light_twirling {
             _turnOffLED()
         } else {
             mltStrip1.showColor(color)
-            mltStrip2.showColor(color)
         }
     }
 
     function _setPixelColor(offset: number, color: number): void {
         if (color === null) {
             mltStrip1.buf.fill(0, offset * 3, 3)
-            mltStrip2.buf.fill(0, offset * 3, 3)
         } else {
             mltStrip1.setPixelColor(offset, color)
             mltStrip1.show()
-            mltStrip2.setPixelColor(offset, color)
-            mltStrip2.show()
         }
     }
 
@@ -311,14 +306,11 @@ namespace light_twirling {
         _setPixelColor(1, color2)
         _setPixelColor(2, color3)
         mltStrip1.show()
-        mltStrip2.show()
     }
 
     function _turnOffLED(): void {
         mltStrip1.clear()
         mltStrip1.show()
-        mltStrip2.clear()
-        mltStrip2.show()
     }
 
 
