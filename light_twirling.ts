@@ -162,6 +162,7 @@ let mltStrip2: neopixel.Strip = neopixel.create(DigitalPin.P1, 3, NeoPixelMode.R
 
 let currentPalette: Palette = Palette.PALETTE1
 let currentPaletteColor: PaletteColor = null
+let currentLEDValue: number | null = null;
 
 let receivedTimestamps: number[] = [];
 
@@ -254,11 +255,13 @@ namespace light_twirling {
             //indicatePalette()
         } else if (name == "led") {
             remoteControlled = true
+            if (currentLEDValue === value) return;
+            currentLEDValue = value;
             currentPalette = Math.floor(value / 10.0) | 0
             currentPaletteColor = value - currentPalette * 10
             if (mode === 'AlwaysON') _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
-        } else if (mode == "Blink" && name == "blink") {
-            if (value == 1) {
+        } else if (mode === "Blink" && name === "blink") {
+            if (value === 1) {
                 _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
             } else {
                 _turnOffLED()
@@ -272,7 +275,7 @@ namespace light_twirling {
     _turnOffLED()
     basic.forever(function () {
         if (mode === 'switchingPalette') return
-        if (mode == "AlwaysON" && currentPaletteColor !== null) {
+        if (mode === "AlwaysON" && currentPaletteColor !== null) {
             _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
         }
     })
