@@ -1,3 +1,4 @@
+const RadioGroup = 1
 enum NeoPixelColorsPlus {
     //% block=赤
     Red = 0xFF0000,
@@ -163,8 +164,11 @@ let mltStrip2: neopixel.Strip = neopixel.create(DigitalPin.P1, 3, NeoPixelMode.R
 let currentPalette: Palette = Palette.PALETTE1
 let currentPaletteColor: PaletteColor = null
 let currentLEDValue: number | null = null;
+let ledOn = false;
 
 let receivedTimestamps: number[] = [];
+
+let subTorchAddress: number | null = null;
 
 /**
  * ライトトワリング
@@ -249,6 +253,7 @@ namespace light_twirling {
             if (value === 1) mode = 'AlwaysON'
             else if (value === 2) mode = 'Blink'
             _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
+            _sendPacketToSubTorch()
         } else if (name == "palette") {
             remoteControlled = true
             currentPalette = value
@@ -259,25 +264,60 @@ namespace light_twirling {
             currentLEDValue = value;
             currentPalette = Math.floor(value / 10.0) | 0
             currentPaletteColor = value - currentPalette * 10
-            if (mode === 'AlwaysON') _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
+            if (mode === 'AlwaysON') {
+                _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
+                _sendPacketToSubTorch()
+            }
         } else if (mode === "Blink" && name === "blink") {
             if (value === 1) {
                 _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
             } else {
                 _turnOffLED()
             }
+            _sendPacketToSubTorch()
         }
     })
 
     let bpm = 0
     let mode = "AlwaysON"
-    radio.setGroup(1)
+    radio.setGroup(RadioGroup)
     _turnOffLED()
     basic.forever(function () {
         if (mode === 'switchingPalette') return
         if (mode === "AlwaysON" && currentPaletteColor !== null) {
             _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
         }
+    })
+
+    let index = 0
+    function _sendPacketToSubTorch() {
+        const ledValue = ledOn ? 1 : 0;
+        let value = 65536 * subTorchAddress + (256 * (index * 4 + 0) + ledValue)
+        radio.sendNumber(value)
+
+        const rgb = PaletteColorColors[currentPalette][currentPaletteColor]
+
+        const r = (rgb & 0xFF0000) >> 16;
+        value = 65536 * subTorchAddress + (256 * (index * 4 + 1) + r)
+        radio.sendNumber(value)
+
+        const g = (rgb & 0x00FF00) >> 8;
+        value = 65536 * subTorchAddress + (256 * (index * 4 + 2) + g)
+        radio.sendNumber(value)
+
+        const b = rgb & 0x0000FF;
+        value = 65536 * subTorchAddress + (256 * (index * 4 + 3) + b)
+        radio.sendNumber(value)
+
+        index = (index + 1) % 64
+    }
+
+    basic.forever(function () {
+        if (currentPaletteColor === null || subTorchAddress === null) return
+
+        _sendPacketToSubTorch()
+
+        basic.pause(100)
     })
 
     /**
@@ -311,6 +351,7 @@ namespace light_twirling {
     }
 
     function _litLEDWithColors(color1: number, color2: number, color3: number): void {
+        ledOn = true
         _setPixelColor(0, color1)
         _setPixelColor(1, color2)
         _setPixelColor(2, color3)
@@ -319,6 +360,7 @@ namespace light_twirling {
     }
 
     function _turnOffLED(): void {
+        ledOn = false
         mltStrip1.clear()
         mltStrip1.show()
         mltStrip2.clear()
@@ -350,5 +392,15 @@ namespace light_twirling {
             }
         }
         return parseInt(colorCode, 16)
+    }
+
+    /**
+     * サブトーチのアドレスを設定します
+    */
+    //% block="サブトーチのアドレスを%address|にする"
+    //% address.min=0 address.max=255 address.defl=1
+    //% weight=70
+    export function setSubTorchAddress(address: number): void {
+        subTorchAddress = address
     }
 }
