@@ -182,6 +182,7 @@ namespace light_twirling {
         if (currentPaletteColor === null) currentPaletteColor = PaletteColor.PaletteColor1
         else currentPaletteColor = (currentPaletteColor + 1) % 6
         _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
+        _sendPacketToSubTorch()
     })
 
     input.onButtonPressed(Button.B, function () {
@@ -194,6 +195,7 @@ namespace light_twirling {
             currentPaletteColor = (currentPaletteColor - 1) % 6
         }
         _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
+        _sendPacketToSubTorch()
     })
 
     function indicatePalette() {
@@ -289,36 +291,44 @@ namespace light_twirling {
         }
     })
 
-    let index = 0
-    function _sendPacketToSubTorch() {
+    /*
+     * This function sends same packet 5 times.
+     */
+    const repeatCount = 5
+    const repeatInterval = 10 // msec
+    const _sendPacket = () => {
+        let buf = Buffer.create(3)
+        buf.fill(subTorchAddress, 0, 1)
+        let dataType = 0;
+        buf.fill(dataType, 1, 1)
         const ledValue = ledOn ? 1 : 0;
-        let value = 65536 * subTorchAddress + (256 * (index * 4 + 0) + ledValue)
-        radio.sendNumber(value)
+        buf.fill(ledValue, 2, 1)
+        radio.sendBuffer(buf)
+
+        if (!ledOn) return
 
         const rgb = PaletteColorColors[currentPalette][currentPaletteColor]
-
+        buf = Buffer.create(5)
+        buf.fill(subTorchAddress, 0, 1)
+        dataType = 1;
+        buf.fill(dataType, 1, 1)
         const r = (rgb & 0xFF0000) >> 16;
-        value = 65536 * subTorchAddress + (256 * (index * 4 + 1) + r)
-        radio.sendNumber(value)
-
+        buf.fill(r, 2, 1)
         const g = (rgb & 0x00FF00) >> 8;
-        value = 65536 * subTorchAddress + (256 * (index * 4 + 2) + g)
-        radio.sendNumber(value)
-
+        buf.fill(g, 3, 1)
         const b = rgb & 0x0000FF;
-        value = 65536 * subTorchAddress + (256 * (index * 4 + 3) + b)
-        radio.sendNumber(value)
-
-        index = (index + 1) % 64
+        buf.fill(b, 4, 1)
+        radio.sendBuffer(buf)
     }
 
-    basic.forever(function () {
-        if (currentPaletteColor === null || subTorchAddress === null) return
+    function _sendPacketToSubTorch() {
+        if (subTorchAddress === null) return
 
-        _sendPacketToSubTorch()
-
-        basic.pause(100)
-    })
+        for (let i = 0; i < repeatCount; i++) {
+            _sendPacket()
+            basic.pause(repeatInterval)
+        }
+    }
 
     /**
      * カラーを指定した色に設定します
@@ -333,6 +343,7 @@ namespace light_twirling {
         if (color === NeoPixelColorsPlus.None) {
             _turnOffLED()
         } else {
+            ledOn = true
             mltStrip1.showColor(color)
             mltStrip2.showColor(color)
         }
@@ -351,7 +362,6 @@ namespace light_twirling {
     }
 
     function _litLEDWithColors(color1: number, color2: number, color3: number): void {
-        ledOn = true
         _setPixelColor(0, color1)
         _setPixelColor(1, color2)
         _setPixelColor(2, color3)
