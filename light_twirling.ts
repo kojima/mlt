@@ -297,21 +297,10 @@ namespace light_twirling {
     const repeatCount = 5
     const repeatInterval = 10 // msec
     const _sendPacket = () => {
-        let buf = Buffer.create(3)
-        buf.fill(subTorchAddress, 0, 1)
-        let dataType = 0;
-        buf.fill(dataType, 1, 1)
-        const ledValue = ledOn ? 1 : 0;
-        buf.fill(ledValue, 2, 1)
-        radio.sendBuffer(buf)
-
-        if (!ledOn) return
-
         const rgb = PaletteColorColors[currentPalette][currentPaletteColor]
-        buf = Buffer.create(5)
+        let buf = Buffer.create(5)
         buf.fill(subTorchAddress, 0, 1)
-        dataType = 1;
-        buf.fill(dataType, 1, 1)
+        buf.fill(ledOn ? 1 : 0, 1, 1)
         const r = (rgb & 0xFF0000) >> 16;
         buf.fill(r, 2, 1)
         const g = (rgb & 0x00FF00) >> 8;
