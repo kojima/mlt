@@ -53,7 +53,7 @@ enum PaletteColor {
     //% block="カラー5"
     PaletteColor5 = 4,
     //% block="カラー6"
-    PaletteColor6 = 5,
+    PaletteColor6 = 5
 }
 
 const PaletteColorColors: {[key: number]: Array<number>} = {
@@ -107,7 +107,7 @@ const PaletteColorColors: {[key: number]: Array<number>} = {
     ]
 };
 
-/**
+/*
  * ライトトワリング
  */
 //% weight=100 color=#e67e22 icon="\uf005" block="ライトトワリング"
@@ -307,27 +307,28 @@ namespace light_twirling {
         }
     })
 
-    /**
+    /*
      * カラーを指定した色に設定します
-    */
-    //% block="$Palette の$PaletteColor を%color=neo_pixel_colors_plus|にする"
+     */
+    //% block="$palette の$paletteColor を$color=neo_pixel_colors_plus にする"
     //% weight=100
     export function setPaletteColorColor(palette: Palette, paletteColor: PaletteColor, color: number): void {
+        if (!color) return
         PaletteColorColors[palette][paletteColor] = color
     }
 
-   /**
+    /*
      * LEDの色を選択します
-    */
+     */
     //% blockId="neo_pixel_colors_plus" block="%color"
     //% weight=90
     export function colors(color: NeoPixelColorsPlus): number {
         return color
     }
 
-    /**
+    /*
      * カラーコード(#FF00FFのようなコード)を色に変換します
-    */
+     */
     //% block="カラーコード%colorCode|を色に変換"
     //% weight=80
     export function convertColorCode(colorCode: string): number {
@@ -342,9 +343,9 @@ namespace light_twirling {
         return parseInt(colorCode, 16)
     }
 
-    /**
+    /*
      * サブトーチのアドレスを設定します
-    */
+     */
     //% block="サブトーチのアドレスを%address|にする"
     //% address.min=0 address.max=255 address.defl=1
     //% weight=70
