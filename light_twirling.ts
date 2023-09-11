@@ -347,9 +347,11 @@ namespace light_twirling {
      * サブトーチのアドレスを設定します
      */
     //% block="サブトーチのアドレスを%address|にする"
-    //% address.min=0 address.max=255 address.defl=1
+    //% address.defl=1
     //% weight=70
     export function setSubTorchAddress(address: number): void {
+        if (address > 255) return
+
         subTorchAddress = address
     }
 }
