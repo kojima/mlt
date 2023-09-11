@@ -38,15 +38,7 @@ enum Palette {
     //% block="パレット5"
     PALETTE5 = 4,
     //% block="パレット6"
-    PALETTE6 = 5,
-    //% block="パレット7"
-    PALETTE7 = 6,
-    //% block="パレット8"
-    PALETTE8 = 7,
-    //% block="パレット9"
-    PALETTE9 = 8,
-    //% block="パレット10"
-    PALETTE10 = 9
+    PALETTE6 = 5
 }
 
 enum PaletteColor {
@@ -71,11 +63,9 @@ const PaletteColorColors: {[key: number]: Array<number>} = {
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None
     ],
     1: [
-        NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
@@ -89,11 +79,9 @@ const PaletteColorColors: {[key: number]: Array<number>} = {
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None
     ],
     3: [
-        NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
@@ -107,47 +95,9 @@ const PaletteColorColors: {[key: number]: Array<number>} = {
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None
     ],
     5: [
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None
-    ],
-    6: [
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None
-    ],
-    7: [
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None
-    ],
-    8: [
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None,
-        NeoPixelColorsPlus.None
-    ],
-    9: [
-        NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
         NeoPixelColorsPlus.None,
@@ -157,31 +107,132 @@ const PaletteColorColors: {[key: number]: Array<number>} = {
     ]
 };
 
-let mltStrip1: neopixel.Strip = neopixel.create(DigitalPin.P0, 6, NeoPixelMode.RGB)
-// backward compatibility
-let mltStrip2: neopixel.Strip = neopixel.create(DigitalPin.P1, 3, NeoPixelMode.RGB)
-
-let currentPalette: Palette = Palette.PALETTE1
-let currentPaletteColor: PaletteColor = null
-let currentLEDValue: number | null = null;
-let ledOn = false;
-
-let receivedTimestamps: number[] = [];
-
-let subTorchAddress: number | null = null;
-
 /**
  * ライトトワリング
  */
 //% weight=100 color=#e67e22 icon="\uf005" block="ライトトワリング"
 namespace light_twirling {
+    let mltStrip1: neopixel.Strip = neopixel.create(DigitalPin.P0, 6, NeoPixelMode.RGB)
+    // backward compatibility
+    let mltStrip2: neopixel.Strip = neopixel.create(DigitalPin.P1, 3, NeoPixelMode.RGB)
+
+    let currentPalette: Palette = Palette.PALETTE1
+    let currentPaletteColor: PaletteColor = null
+    let lastLedValue: number | null = null
+
+    const ModeAlwaysOn = 1
+    const ModeBlink = 2
+    let currentMode = ModeAlwaysOn
+
+    let latestSerialNo = 0
+    let lastMillis = 0
+    const broadcastMinInterval = 100    // msec
+
+    let subTorchAddress: number | null = null;
+
+    let remoteControlled = false
+
+    const paletteLen = Object.keys(PaletteColorColors).length
+    const colorLen = PaletteColorColors[0].length
+
+    radio.setGroup(RadioGroup)
+    radio.setTransmitPower(7)
+    _turnOffLed()
+
+    const _plotColor = (color: number) => {
+        for (let i = 0; i < 6; i++) {
+            const x = i % 5
+            const y = Math.floor(i / 5) + 2
+            if (i !== color) led.unplot(x, y)
+            else led.plot(x, y)
+        }
+    }
+
+    const _plotPalette = (palette: number) => {
+        for (let i = 0; i < 6; i++) {
+            const x = i % 5
+            const y = Math.floor(i / 5)
+            if (i !== palette) led.unplot(x, y)
+            else led.plot(x, y)
+        }
+    }
+
+    function _litLed(color: number): void {
+        if (color === NeoPixelColorsPlus.None) {
+            _turnOffLed()
+        } else {
+            mltStrip1.showColor(color)
+            mltStrip2.showColor(color)
+        }
+        if (!remoteControlled) {
+            _plotPalette(currentPalette)
+            _plotColor(currentPaletteColor)
+        }
+    }
+
+    function _turnOffLed(): void {
+        mltStrip1.clear()
+        mltStrip1.show()
+        mltStrip2.clear()
+        mltStrip2.show()
+    }
+
+    function _setRemoteControlled(value: boolean): void {
+        if (!remoteControlled && value) {
+            _plotPalette(-1)
+            _plotColor(-1)
+        }
+        remoteControlled = value
+    }
+
+    const _sendPaletteToSubTorch = () => {
+        for (let i = 0; i < paletteLen * colorLen; i++) {
+            const buf = Buffer.create(6)
+            buf.fill(subTorchAddress, 0, 1)
+            buf.fill(0xFF, 1, 1) // type
+            buf.fill(i, 2, 1) // serial color index
+            const paletteIndex = Math.floor(i / colorLen)
+            const colorIndex = i % colorLen
+            const rgb = PaletteColorColors[paletteIndex][colorIndex]
+            if (rgb === NeoPixelColorsPlus.None) continue
+
+            const r = (rgb & 0xFF0000) >> 16
+            const g = (rgb & 0x00FF00) >> 8
+            const b = rgb & 0x0000FF
+            buf.fill(r, 3, 1)    // r of rgb
+            buf.fill(g, 4, 1)    // g of rgb
+            buf.fill(b, 5, 1)    // b of rgb
+            radio.sendBuffer(buf)
+        }
+    }
+
+    control.setInterval(() => {
+        _sendPaletteToSubTorch()
+    }, 1000, control.IntervalMode.Timeout)
+
+    function _sendPacketToSubTorch() {
+        if (!remoteControlled && subTorchAddress) {
+            const buf = Buffer.create(6)
+            buf.fill(subTorchAddress, 0, 1)
+            buf.fill(0xEE, 1, 1) // type
+            buf.fill(currentPalette, 2, 1) // palette
+            buf.fill(currentPaletteColor, 3, 1) // color
+            radio.sendBuffer(buf)
+            control.setInterval(() => {
+                _sendPaletteToSubTorch()
+            }, 1000, control.IntervalMode.Timeout)
+        }
+    }
 
     input.onButtonPressed(Button.A, function () {
         if (remoteControlled) return;
 
-        if (currentPaletteColor === null) currentPaletteColor = PaletteColor.PaletteColor1
-        else currentPaletteColor = (currentPaletteColor + 1) % 6
-        _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
+        if (currentPaletteColor === null) {
+            currentPaletteColor = PaletteColor.PaletteColor1
+        } else {
+            currentPaletteColor = (currentPaletteColor + 1) % colorLen
+        }
+        _litLed(PaletteColorColors[currentPalette][currentPaletteColor])
         _sendPacketToSubTorch()
     })
 
@@ -191,181 +242,79 @@ namespace light_twirling {
         if (currentPaletteColor === null) {
             currentPaletteColor = PaletteColor.PaletteColor6
         } else {
-            if (currentPaletteColor <= 0) currentPaletteColor = 6
-            currentPaletteColor = (currentPaletteColor - 1) % 6
+            if (currentPaletteColor <= 0) currentPaletteColor = colorLen - 1
+            currentPaletteColor = (currentPaletteColor - 1) % colorLen
         }
-        _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
+        _litLed(PaletteColorColors[currentPalette][currentPaletteColor])
         _sendPacketToSubTorch()
     })
-
-    function indicatePalette() {
-        if (mode === 'switchingPalette') return
-        mode = 'switchingPalette'
-        const colors = [
-            0xFF0000,
-            0xFF6A00,
-            0xFFE800,
-            0x006400,
-            0x55FF00,
-            0x101989,
-            0x0000FF,
-            0x2255FF,
-            0x7700FF,
-            0xEE33EE,
-            0xFFFFFF,            
-        ]
-        if (currentPalette >= 0 && currentPalette < colors.length) {
-            for (let i = 0; i < 3; i++) {
-                _turnOffLED()
-                basic.pause(250)
-                _litLED(colors[currentPalette])
-                basic.pause(250)
-            }
-            _turnOffLED()
-        }
-        mode = "AlwaysON"
-    }
 
     input.onButtonPressed(Button.AB, function () {
         if (remoteControlled) return;
 
-        currentPalette = (currentPalette + 1) % 10
-        indicatePalette()
+        currentPalette = (currentPalette + 1) % paletteLen
+        _plotPalette(currentPalette)
     })
 
-    let remoteControlled = false
-    radio.onReceivedValue(function (name, valueWithTimestamp: number) {
-        //serial.writeLine("onReceivedValue")
-        //serial.writeValue(name, valueWithTimestamp)
-        const timestamp: number = Math.floor(valueWithTimestamp / 10000)
-        const value = valueWithTimestamp - timestamp * 10000
+    radio.onReceivedValue(function (name, valueWithSerialNo: number) {
+        if (name === "init") {
+            latestSerialNo = 0
+            currentMode = ModeAlwaysOn
+            _turnOffLed()
+            return
+        }
+        const serialNo: number = Math.floor(valueWithSerialNo / 100)
+        const value = valueWithSerialNo % 100
 
-        if (receivedTimestamps.indexOf(timestamp) >= 0) return;
+        if (serialNo <= latestSerialNo) return;
 
         //serial.writeValue(name, value)
-        receivedTimestamps.push(timestamp)
-        if (receivedTimestamps.length > 100) receivedTimestamps.shift()
 
         // *********************************************
         // repeat message for other twirling toarches
         // *********************************************
-        radio.sendValue(name, valueWithTimestamp)
+        const currentMillis = control.millis()
+        if (currentMillis - lastMillis > broadcastMinInterval) {
+            radio.sendValue(name, valueWithSerialNo)
+        }
 
-        if (name == "mode") {
-            if (value === 1) mode = 'AlwaysON'
-            else if (value === 2) mode = 'Blink'
-            _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
-            _sendPacketToSubTorch()
-        } else if (name == "palette") {
-            remoteControlled = true
-            currentPalette = value
-            //indicatePalette()
-        } else if (name == "led") {
-            remoteControlled = true
-            if (currentLEDValue === value) return;
-            currentLEDValue = value;
+        lastMillis = control.millis()
+
+        if (name === "mode") {
+            currentMode = value
+            if (currentMode == ModeAlwaysOn) {
+                _litLed(PaletteColorColors[currentPalette][currentPaletteColor])
+            }
+        } else if (name === "led") {
+            _setRemoteControlled(true)
+            if (lastLedValue === value) return;
+            lastLedValue = value;
             currentPalette = Math.floor(value / 10.0) | 0
             currentPaletteColor = value - currentPalette * 10
-            if (mode === 'AlwaysON') {
-                _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
-                _sendPacketToSubTorch()
+            if (currentMode === ModeAlwaysOn) {
+                if (currentPalette < colorLen) {
+                    _litLed(PaletteColorColors[currentPalette][currentPaletteColor])
+                } else {
+                    _turnOffLed()
+                }
             }
-        } else if (mode === "Blink" && name === "blink") {
+        } else if (name === "blink") {
             if (value === 1) {
-                _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
+                _litLed(PaletteColorColors[currentPalette][currentPaletteColor])
             } else {
-                _turnOffLED()
+                _turnOffLed()
             }
-            _sendPacketToSubTorch()
         }
     })
-
-    let bpm = 0
-    let mode = "AlwaysON"
-    radio.setGroup(RadioGroup)
-    _turnOffLED()
-    basic.forever(function () {
-        if (mode === 'switchingPalette') return
-        if (mode === "AlwaysON" && currentPaletteColor !== null) {
-            _litLED(PaletteColorColors[currentPalette][currentPaletteColor])
-        }
-    })
-
-    /*
-     * This function sends same packet 5 times.
-     */
-    const repeatCount = 5
-    const repeatInterval = 10 // msec
-    const _sendPacket = () => {
-        const rgb = PaletteColorColors[currentPalette][currentPaletteColor]
-        let buf = Buffer.create(5)
-        buf.fill(subTorchAddress, 0, 1)
-        buf.fill(ledOn ? 1 : 0, 1, 1)
-        const r = (rgb & 0xFF0000) >> 16;
-        buf.fill(r, 2, 1)
-        const g = (rgb & 0x00FF00) >> 8;
-        buf.fill(g, 3, 1)
-        const b = rgb & 0x0000FF;
-        buf.fill(b, 4, 1)
-        radio.sendBuffer(buf)
-    }
-
-    function _sendPacketToSubTorch() {
-        if (subTorchAddress === null) return
-
-        for (let i = 0; i < repeatCount; i++) {
-            _sendPacket()
-            basic.pause(repeatInterval)
-        }
-    }
 
     /**
      * カラーを指定した色に設定します
     */
     //% block="$Palette の$PaletteColor を%color=neo_pixel_colors_plus|にする"
     //% weight=100
-    export function setPaletteColorColor(Palette: Palette, PaletteColor: PaletteColor, color: number): void {
-        PaletteColorColors[Palette][PaletteColor] = color
+    export function setPaletteColorColor(palette: Palette, paletteColor: PaletteColor, color: number): void {
+        PaletteColorColors[palette][paletteColor] = color
     }
-
-    function _litLED(color: number): void {
-        if (color === NeoPixelColorsPlus.None) {
-            _turnOffLED()
-        } else {
-            ledOn = true
-            mltStrip1.showColor(color)
-            mltStrip2.showColor(color)
-        }
-    }
-
-    function _setPixelColor(offset: number, color: number): void {
-        if (color === null) {
-            mltStrip1.buf.fill(0, offset * 3, 3)
-            mltStrip2.buf.fill(0, offset * 3, 3)
-        } else {
-            mltStrip1.setPixelColor(offset, color)
-            mltStrip1.show()
-            mltStrip2.setPixelColor(offset, color)
-            mltStrip2.show()
-        }
-    }
-
-    function _litLEDWithColors(color1: number, color2: number, color3: number): void {
-        _setPixelColor(0, color1)
-        _setPixelColor(1, color2)
-        _setPixelColor(2, color3)
-        mltStrip1.show()
-        mltStrip2.show()
-    }
-
-    function _turnOffLED(): void {
-        ledOn = false
-        mltStrip1.clear()
-        mltStrip1.show()
-        mltStrip2.clear()
-        mltStrip2.show()
-    }
-
 
    /**
      * LEDの色を選択します
