@@ -144,8 +144,6 @@ namespace light_twirling {
 
     let _isColorPlotted = false;
     const _plotColor = (color: number) => {
-        if (_isKeepABPressed) return;
-
         for (let i = 0; i < 6; i++) {
             const x = i % 5
             const y = Math.floor(i / 5) + 2
@@ -157,8 +155,6 @@ namespace light_twirling {
 
     let _isPalettePlotted = false;
     const _plotPalette = (palette: number) => {
-        if (_isKeepABPressed) return;
-
         for (let i = 0; i < 6; i++) {
             const x = i % 5
             const y = Math.floor(i / 5)
@@ -176,6 +172,7 @@ namespace light_twirling {
             mltStrip2.showColor(color)
         }
         if (!remoteControlled) {
+            basic.clearScreen()
             _plotPalette(currentPalette)
             _plotColor(currentPaletteColor)
         }
@@ -190,6 +187,7 @@ namespace light_twirling {
 
     function _setRemoteControlled(value: boolean): void {
         if (!remoteControlled && value) {
+            basic.clearScreen()
             _plotPalette(-1)
             _plotColor(-1)
         }
@@ -386,7 +384,9 @@ namespace light_twirling {
             // Clicking the AB button means changing the color palette
             } else if (!input.buttonIsPressed(Button.AB)) {
                 currentPalette = (currentPalette + 1) % paletteLen;
+                basic.clearScreen();
                 _plotPalette(currentPalette);
+                _plotColor(currentPaletteColor);
                 _isKeepABPressed = false;
             }
         } else if (_isKeepABPressed === false && !input.buttonIsPressed(Button.AB)) {
