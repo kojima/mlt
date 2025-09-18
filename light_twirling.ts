@@ -251,7 +251,7 @@ namespace light_twirling {
         if (currentPaletteColor === null) {
             currentPaletteColor = PaletteColor.PaletteColor6
         } else {
-            if (currentPaletteColor <= 0) currentPaletteColor = colorLen - 1
+            if (currentPaletteColor <= 0) currentPaletteColor = colorLen
             currentPaletteColor = (currentPaletteColor - 1) % colorLen
         }
         _litLed(PaletteColorColors[currentPalette][currentPaletteColor])
