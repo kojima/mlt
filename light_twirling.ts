@@ -323,15 +323,6 @@ namespace light_twirling {
     }
 
     /*
-     * LEDの色を選択します
-     */
-    //% blockId="neo_pixel_colors_plus" block="%color"
-    //% weight=90
-    export function colors(color: NeoPixelColorsPlus): number {
-        return color
-    }
-
-    /*
      * カラーコード(#FF00FFのようなコード)を色に変換します
      */
     //% block="カラーコード%colorCode|を色に変換"
@@ -420,17 +411,17 @@ namespace light_twirling {
     function _loadPaletteColorsFromNVS(): void {
         for (let i = 0; i < paletteLen; i++) {
             const colors: number[] = [];
-            try {
-                const colorBuffer = nvs.getBuffer(`${i}`, 3 * colorLen);
-                for (let j = 0; j < colorLen; j++) {
-                    const r = colorBuffer.getNumber(NumberFormat.UInt8BE, j * 3 + 0);
-                    const g = colorBuffer.getNumber(NumberFormat.UInt8BE, j * 3 + 1);
-                    const b = colorBuffer.getNumber(NumberFormat.UInt8BE, j * 3 + 2);
-                    //serial.writeString(`${i}${j}:${r},${g},${b}\n`);
-                    PaletteColorColors[i][j] = (r << 16) | (g << 8) | b;
-                }
-            } catch {}
+            const colorBuffer = nvs.getBuffer(`${i}`, 3 * colorLen);
+
+            if (!colorBuffer) return;
+
+            for (let j = 0; j < colorLen; j++) {
+                const r = colorBuffer.getNumber(NumberFormat.UInt8BE, j * 3 + 0);
+                const g = colorBuffer.getNumber(NumberFormat.UInt8BE, j * 3 + 1);
+                const b = colorBuffer.getNumber(NumberFormat.UInt8BE, j * 3 + 2);
+                //serial.writeString(`${i}${j}:${r},${g},${b}\n`);
+                PaletteColorColors[i][j] = (r << 16) | (g << 8) | b;
+            }
         }
-        //serial.writeString('=====\n');
     }
 }

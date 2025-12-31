@@ -6,8 +6,8 @@
         "core": "*",
         "radio": "*",
         "microphone": "*",
-        "neopixel": "github:microsoft/pxt-neopixel#v0.7.3",
-        "NVS (Non Volatile Storage) library": "github:kojima/microbit-nvs#v0.2.0"
+        "neopixel": "github:microsoft/pxt-neopixel#v0.7.6",
+        "NVS (Non Volatile Storage) library": "github:kojima/microbit-nvs#v0.2.5"
     },
     "files": [
         "main.blocks",
@@ -19,11 +19,11 @@
         "test.ts"
     ],
     "targetVersions": {
-        "target": "8.0.16",
+        "target": "8.0.18",
         "targetId": "microbit"
     },
     "supportedTargets": [
         "microbit"
     ],
-    "preferredEditor": "tsprj"
+    "preferredEditor": "blocksprj"
 }
