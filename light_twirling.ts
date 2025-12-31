@@ -422,7 +422,7 @@ namespace light_twirling {
             const colors: number[] = [];
             const colorBuffer = nvs.getBuffer(`${i}`, 3 * colorLen);
 
-            if (!colorBuffer) return;
+            if (typeof colorBuffer === 'number') return;
 
             for (let j = 0; j < colorLen; j++) {
                 const r = colorBuffer.getNumber(NumberFormat.UInt8BE, j * 3 + 0);
