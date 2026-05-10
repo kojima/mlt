@@ -310,7 +310,7 @@ namespace light_twirling {
     //% block="$palette の$paletteColor を$color=customColorNumberPicker にする"
     //% weight=100
     export function setPaletteColorColor(palette: Palette, paletteColor: PaletteColor, color: number): void {
-        if (!color) return
+        if (!color && color !== 0x000000 && color !== NeoPixelColorsPlus.None) return
         PaletteColorColors[palette][paletteColor] = color
 
         // set the last designated palette as a current palette.
