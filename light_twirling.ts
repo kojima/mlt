@@ -113,8 +113,6 @@ const PaletteColorColors: {[key: number]: Array<number>} = {
 //% weight=100 color=#e67e22 icon="\uf005" block="ライトトワリング"
 namespace light_twirling {
     let mltStrip1: neopixel.Strip = neopixel.create(DigitalPin.P0, 6, NeoPixelMode.RGB)
-    // backward compatibility
-    let mltStrip2: neopixel.Strip = neopixel.create(DigitalPin.P1, 3, NeoPixelMode.RGB)
 
     let currentPalette: Palette = Palette.PALETTE1
     let currentPaletteColor: PaletteColor = null
@@ -169,7 +167,6 @@ namespace light_twirling {
             _turnOffLed()
         } else {
             mltStrip1.showColor(color)
-            mltStrip2.showColor(color)
         }
         if (!remoteControlled) {
             basic.clearScreen()
@@ -181,8 +178,6 @@ namespace light_twirling {
     function _turnOffLed(): void {
         mltStrip1.clear()
         mltStrip1.show()
-        mltStrip2.clear()
-        mltStrip2.show()
     }
 
     function _setRemoteControlled(value: boolean): void {
@@ -312,7 +307,7 @@ namespace light_twirling {
     /*
      * カラーを指定した色に設定します
      */
-    //% block="$palette の$paletteColor を$color=neo_pixel_colors_plus にする"
+    //% block="$palette の$paletteColor を$color=customColorNumberPicker にする"
     //% weight=100
     export function setPaletteColorColor(palette: Palette, paletteColor: PaletteColor, color: number): void {
         if (!color) return
@@ -322,11 +317,25 @@ namespace light_twirling {
         currentPalette = palette
     }
 
+    /**
+     * パレットからLEDの色を選択します
+     */
+    //  Reference: https://github.com/KitronikLtd/pxt-kitronik-klip-motor/blob/afd0fb5f093dfa9a109c0b4c5a9838899744e86a/klip_motor.ts#L549
+    //% blockId=customColorNumberPicker block="%value"
+    //% weight=90
+    //% value.fieldEditor="colornumber" value.fieldOptions.decompileLiterals=true
+    //% value.defl='#ff0000'
+    //% value.fieldOptions.colours='["#FF0000", "#FF2B00", "#FF5500", "#FF8000", "#FFAA00", "#FFD500", "#FFFF00", "#D5FF00", "#AAFF00", "#80FF00", "#55FF00", "#2BFF00", "#00FF00", "#00FF2B", "#00FF55", "#00FF80", "#00FFAA", "#00FFD5", "#00FFFF", "#00D5FF", "#00AAFF", "#0080FF", "#0055FF", "#002BFF", "#0000FF", "#2B00FF", "#5500FF", "#8000FF", "#AA00FF", "#D500FF", "#FF00FF", "#FF00D5", "#FF00AA", "#FF0080", "#FF0055", "#FF002B", "#FFFFFF", "#000000"]'
+    //% value.fieldOptions.columns=6 value.fieldOptions.className='rgbColorPicker'
+    export function __colorNumberPicker(value: number) {
+        return value;
+    }
+
     /*
      * LEDの色を選択します
      */
     //% blockId="neo_pixel_colors_plus" block="%color"
-    //% weight=90
+    //% weight=85
     export function colors(color: NeoPixelColorsPlus): number {
         return color
     }
