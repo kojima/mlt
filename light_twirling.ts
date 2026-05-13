@@ -107,6 +107,12 @@ const PaletteColorColors: {[key: number]: Array<number>} = {
     ]
 };
 
+type ReservedPacket = {
+    timestamp: number,
+    name: string,
+    value: number,
+}
+
 /*
  * ライトトワリング
  */
@@ -123,7 +129,6 @@ namespace light_twirling {
     let currentMode = ModeAlwaysOn
 
     let latestSerialNo = 0
-    let lastMillis = 0
 
     let subTorchAddress: number | null = null;
 
@@ -132,6 +137,7 @@ namespace light_twirling {
     const paletteLen = Object.keys(PaletteColorColors).length
     const colorLen = PaletteColorColors[0].length
 
+    let reservedPacket: ReservedPacket | null = null;
 
     _loadPaletteColorsFromNVS();
 
@@ -252,7 +258,6 @@ namespace light_twirling {
         _sendPacketToSubTorch()
     })
 
-    let intervalId: number | null = null;
     radio.onReceivedValue(function (name, valueWithSerialNo: number) {
         if (name === "init") {
             latestSerialNo = 0
@@ -269,9 +274,7 @@ namespace light_twirling {
         }
 
         latestSerialNo = serialNo
-        if (intervalId !== null) {
-            control.clearInterval(intervalId, control.IntervalMode.Timeout)
-        }
+        reservedPacket = null;
 
         //serial.writeValue(name, value)
 
@@ -293,6 +296,14 @@ namespace light_twirling {
                     _turnOffLed()
                 }
             }
+            // *********************************************
+            // reserve message packet
+            // *********************************************
+            reservedPacket = {
+                timestamp: control.millis(),
+                name: name,
+                value: valueWithSerialNo
+            }
         } else if (name === "blink") {
             if (value === 1) {
                 _litLed(PaletteColorColors[currentPalette][currentPaletteColor])
@@ -300,16 +311,6 @@ namespace light_twirling {
                 _turnOffLed()
             }
         }
-        // *********************************************
-        // repeat message for other twirling toarches
-        // *********************************************
-        intervalId = control.setInterval(() => {
-            if (currentMode === ModeAlwaysOn) {
-                radio.sendValue(name, valueWithSerialNo)
-            }
-            intervalId = null
-        }, 100 * Math.random(), control.IntervalMode.Timeout)
-
     })
 
     /*
@@ -380,7 +381,21 @@ namespace light_twirling {
     let _isKeepABPressed: boolean | null = null;
     let _buttonPressedFrom = 0;
     basic.forever(() => {
-        if (remoteControlled) return;
+        if (remoteControlled) {
+            // send reservedPacket if needed
+            if (reservedPacket) {
+                const current = control.millis()
+                const randomInterval = 50 + 50 * Math.random()
+                if (current - reservedPacket.timestamp >= randomInterval) {
+                    radio.sendValue(
+                        reservedPacket.name,
+                        reservedPacket.value
+                    )
+                    reservedPacket = null;
+                }
+            }
+            return;
+        }
 
         // Detect long AB button pressed state for saving palette colors
         if (input.buttonIsPressed(Button.AB) && _isKeepABPressed === null) {
