@@ -124,7 +124,6 @@ namespace light_twirling {
 
     let latestSerialNo = 0
     let lastMillis = 0
-    const broadcastMinInterval = 100    // msec
 
     let subTorchAddress: number | null = null;
 
@@ -253,6 +252,7 @@ namespace light_twirling {
         _sendPacketToSubTorch()
     })
 
+    let intervalId: number | null = null;
     radio.onReceivedValue(function (name, valueWithSerialNo: number) {
         if (name === "init") {
             latestSerialNo = 0
@@ -263,19 +263,17 @@ namespace light_twirling {
         const serialNo: number = Math.floor(valueWithSerialNo / 100)
         const value = valueWithSerialNo % 100
 
-        if (serialNo <= latestSerialNo) return;
-
-        //serial.writeValue(name, value)
-
-        // *********************************************
-        // repeat message for other twirling toarches
-        // *********************************************
-        const currentMillis = control.millis()
-        if (currentMillis - lastMillis > broadcastMinInterval) {
-            radio.sendValue(name, valueWithSerialNo)
+        // discard an old packets
+        if (serialNo <= latestSerialNo) {
+            return
         }
 
-        lastMillis = control.millis()
+        latestSerialNo = serialNo
+        if (intervalId !== null) {
+            control.clearInterval(intervalId, control.IntervalMode.Timeout)
+        }
+
+        //serial.writeValue(name, value)
 
         if (name === "mode") {
             currentMode = value
@@ -302,6 +300,16 @@ namespace light_twirling {
                 _turnOffLed()
             }
         }
+        // *********************************************
+        // repeat message for other twirling toarches
+        // *********************************************
+        intervalId = control.setInterval(() => {
+            if (currentMode === ModeAlwaysOn) {
+                radio.sendValue(name, valueWithSerialNo)
+            }
+            intervalId = null
+        }, 100 * Math.random(), control.IntervalMode.Timeout)
+
     })
 
     /*
